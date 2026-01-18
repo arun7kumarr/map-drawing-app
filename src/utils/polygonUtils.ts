@@ -1,19 +1,19 @@
 import * as turf from "@turf/turf";
-import type { Feature, Polygon } from "geojson";
+import type { Feature } from "geojson";
 import L from "leaflet";
 import { useMapStore } from "../store/useMapStore";
 
 /**
- * Convert circle → polygon (Turf compatible)
+ * Convert circle → polygon
  */
-function circleToPolygon(circle: any): Feature<Polygon> {
+function circleToPolygon(circle: any): any {
   const center = circle.geometry.coordinates;
   const radius = circle.properties?._radius || 100;
 
   return turf.circle(center, radius / 1000, {
     steps: 64,
     units: "kilometers",
-  }) as Feature<Polygon>;
+  });
 }
 
 export function handleNewShape(
@@ -22,17 +22,16 @@ export function handleNewShape(
 ) {
   const { features, addFeature } = useMapStore.getState();
 
-  // ✅ LineStrings are excluded
+  // LineStrings allowed
   if (newFeature.geometry.type === "LineString") {
     addFeature(newFeature);
     return;
   }
 
-  // Normalize to polygon
-  let newPolygon: Feature<Polygon>;
+  let newPolygon: any;
 
   if (newFeature.geometry.type === "Polygon") {
-    newPolygon = newFeature as Feature<Polygon>;
+    newPolygon = newFeature;
   } else if ((newFeature.geometry as any).type === "Circle") {
     newPolygon = circleToPolygon(newFeature);
   } else {
@@ -43,22 +42,21 @@ export function handleNewShape(
   for (const old of features) {
     if (old.geometry.type !== "Polygon") continue;
 
-    const oldPolygon = old as Feature<Polygon>;
+    const oldPolygon: any = old;
 
-    // 🚫 FULLY INSIDE → BLOCK
+    // FULL ENCLOSURE
     if (turf.booleanContains(oldPolygon, newPolygon)) {
       alert("Polygon cannot be drawn inside another polygon.");
-      layer.remove(); // 🔥 remove from map
+      layer.remove();
       return;
     }
 
-    // 🔁 PARTIAL OVERLAP → AUTO TRIM
-    const intersection = turf.intersect(oldPolygon, newPolygon);
+    // PARTIAL OVERLAP
+    if (turf.booleanIntersects(oldPolygon, newPolygon)) {
+      const fc = turf.featureCollection([newPolygon, oldPolygon]);
+      const trimmed = turf.difference(fc);
 
-    if (intersection) {
-      const trimmed = turf.difference(newPolygon, oldPolygon);
-
-      layer.remove(); // 🔥 remove original drawn shape
+      layer.remove();
 
       if (!trimmed) {
         alert("Invalid polygon overlap.");
@@ -70,6 +68,6 @@ export function handleNewShape(
     }
   }
 
-  // ✅ Valid polygon
-  addFeature(newFeature);
+  // valid polygon
+  addFeature(newPolygon);
 }
