@@ -1,6 +1,5 @@
 import { MapContainer, TileLayer, FeatureGroup } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
-import { useMapStore } from "../store/useMapStore";
 import { handleNewShape } from "../utils/polygonUtils";
 import MapResizeFix from "./MapResizeFix";
 

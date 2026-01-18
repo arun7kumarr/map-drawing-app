@@ -5,7 +5,7 @@ export default function Header() {
     <header style={styles.header}>
       <div>
         <h3 style={styles.name}>Arun Kumar</h3>
-        <p style={styles.email}>arun.kumar@email.com</p>
+        <p style={styles.email}>arunkumaryadav6919@gmail.com</p>
       </div>
 
       <ExportButton />
